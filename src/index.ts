@@ -1,5 +1,5 @@
 // Initialize centralized configuration first
-import './config/init';
+import "./config/init";
 
 import "./tracer";
 import path from "path";
@@ -47,7 +47,7 @@ import kycTierUpgradeRoutes from "./routes/kycTierUpgradeRoutes";
 import { makerCheckerRoutes } from "./routes/makerChecker";
 import { userRoutes } from "./routes/users";
 import { auditRoutes } from "./routes/audit";
-import { errorHandler } from "./middleware/errorHandler";
+import { createError, errorHandler } from "./middleware/errorHandler";
 import {
   connectRedis,
   disconnectRedis,
@@ -90,12 +90,12 @@ import exchangeRateBufferRoutes from "./routes/exchangeRateBuffers";
 import adminAssetRoutes from "./routes/admin/assets";
 import settingsRoutes from "./routes/settings";
 
-
-
 // 1. Import Sentry Middleware
 import { initSentry, sentryBreadcrumbMiddleware } from "./middleware/sentry";
 import { WebSocketManager } from "./websocket";
 import { layeredCache } from "./services/layeredCache";
+import { ERROR_CODES } from "./constants/errorCodes";
+import { startApolloServer } from "./graphql/server";
 
 dotenv.config();
 
@@ -176,7 +176,7 @@ app.use(i18nMiddleware);
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (isShuttingDown) {
     res.setHeader("Connection", "close");
-    return res.status(503).json({
+    throw createError(ERROR_CODES.SERVICE_UNAVAILABLE, "Service Unavailable", {
       error: "Service Unavailable",
       message: "Server is shutting down. Please retry shortly.",
     });
@@ -379,8 +379,6 @@ app.use("/api/exchange-rate-buffers", exchangeRateBufferRoutes);
 app.use("/api/admin/assets", adminAssetRoutes);
 app.use("/api/settings", settingsRoutes);
 
-
-
 // GDPR
 app.use("/api/gdpr", privacyRoutes);
 app.use("/api/developer", developerDashboardRoutes);
@@ -413,7 +411,7 @@ app.use(
     next: NextFunction,
   ) => {
     if (err.type === "entity.too.large") {
-      return res.status(413).json({
+      throw createError(ERROR_CODES.LIMIT_EXCEEDED, "Payload Too Large", {
         error: "Payload Too Large",
         message: `Request exceeds the maximum size of ${process.env.REQUEST_SIZE_LIMIT || "10mb"}`,
       });

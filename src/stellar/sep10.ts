@@ -3,6 +3,8 @@ import * as StellarSdk from "stellar-sdk";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { getStellarServer, getNetworkPassphrase } from "../config/stellar";
+import { ERROR_CODES } from "../constants/errorCodes";
+import { createError } from "../middleware/errorHandler";
 
 /**
  * SEP-10: Stellar Authentication
@@ -330,7 +332,7 @@ export function createSep10Router(service?: Sep10Service): Router {
    */
   router.get("/", (req: Request, res: Response) => {
     if (!sep10Service) {
-      return res.status(503).json({
+      throw createError(ERROR_CODES.SERVICE_UNAVAILABLE, "SEP-10 service not configured", {
         error: "SEP-10 service not configured",
       });
     }
@@ -340,7 +342,7 @@ export function createSep10Router(service?: Sep10Service): Router {
 
       // Validate required parameters
       if (!account || typeof account !== "string") {
-        return res.status(400).json({
+        throw createError(ERROR_CODES.INVALID_INPUT, "account parameter is required", {
           error: "account parameter is required",
         });
       }
@@ -356,14 +358,12 @@ export function createSep10Router(service?: Sep10Service): Router {
       console.error("[SEP-10] Error generating challenge:", error);
       
       if (error instanceof Error) {
-        return res.status(400).json({
+        throw createError(ERROR_CODES.INVALID_INPUT, error.message, {
           error: error.message,
         });
       }
 
-      return res.status(500).json({
-        error: "Failed to generate challenge transaction",
-      });
+      throw createError(ERROR_CODES.INTERNAL_ERROR, "Failed to generate challenge transaction");
     }
   });
 
@@ -375,7 +375,7 @@ export function createSep10Router(service?: Sep10Service): Router {
    */
   router.post("/", (req: Request, res: Response) => {
     if (!sep10Service) {
-      return res.status(503).json({
+      throw createError(ERROR_CODES.SERVICE_UNAVAILABLE, "SEP-10 service not configured", {
         error: "SEP-10 service not configured",
       });
     }
@@ -385,7 +385,7 @@ export function createSep10Router(service?: Sep10Service): Router {
 
       // Validate required parameters
       if (!transaction || typeof transaction !== "string") {
-        return res.status(400).json({
+        throw createError(ERROR_CODES.INVALID_INPUT, "transaction parameter is required", {
           error: "transaction parameter is required",
         });
       }
@@ -398,14 +398,12 @@ export function createSep10Router(service?: Sep10Service): Router {
       console.error("[SEP-10] Error verifying challenge:", error);
       
       if (error instanceof Error) {
-        return res.status(400).json({
+        throw createError(ERROR_CODES.INVALID_INPUT, error.message, {
           error: error.message,
         });
       }
 
-      return res.status(500).json({
-        error: "Failed to verify challenge transaction",
-      });
+      throw createError(ERROR_CODES.INTERNAL_ERROR, "Failed to verify challenge transaction");
     }
   });
 
@@ -416,7 +414,7 @@ export function createSep10Router(service?: Sep10Service): Router {
    */
   router.get("/health", (req: Request, res: Response) => {
     if (!sep10Service) {
-      return res.status(503).json({
+      throw createError(ERROR_CODES.SERVICE_UNAVAILABLE, "SEP-10 service not configured", {
         status: "unavailable",
         service: "SEP-10 Authentication",
         error: "Service not configured",

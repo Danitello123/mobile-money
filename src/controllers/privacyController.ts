@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import fs from "node:fs/promises";
 import { GDPRService } from "../services/gdprService";
 import { logAuditEvent } from "../utils/log-audit-event";
+import { ERROR_CODES } from "../constants/errorCodes";
+import { createError } from "../middleware/errorHandler";
 
 const DATA_EXPORT_REQUIRED = "DATA_EXPORT_REQUIRED";
 const RIGHT_TO_BE_FORGOTTEN_INITIATED = "RIGHT_TO_BE_FORGOTTEN_INITIATED";
@@ -25,7 +27,7 @@ const privacyController = {
       });
     } catch (err) {
       console.error("Export error: ", err);
-      res.status(500).json({ error: "Failed to export data." });
+      throw createError(ERROR_CODES.INTERNAL_ERROR, "Failed to export data.");
     }
   },
   rightToBeForgettenEndpoint: async (req: Request, res: Response) => {
@@ -36,7 +38,7 @@ const privacyController = {
       const { confirmed } = req.body;
 
       if (!confirmed) {
-        return res.status(400).json({
+        throw createError(ERROR_CODES.INVALID_INPUT, "Erasure must be confirmed", {
           error: "Erasure must be confirmed",
           message: "Send { confirmed: true } to proceed with data erasure",
         });
@@ -58,7 +60,7 @@ const privacyController = {
       });
     } catch (err) {
       console.error("Right to be forgotten error:", err);
-      res.status(500).json({ error: "Failed to process erasure request" });
+      throw createError(ERROR_CODES.INTERNAL_ERROR, "Failed to process erasure request");
     }
   },
 };

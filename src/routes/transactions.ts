@@ -23,6 +23,8 @@ import { TransactionModel } from "../models/transaction";
 import { generateTransactionPdfBuffer } from "../services/pdfReceipt";
 import { generateShareToken, verifyShareToken } from "../utils/share";
 import { createExportRoutes } from "./export";
+import { ERROR_CODES } from "../constants/errorCodes";
+import { createError } from "../middleware/errorHandler";
 
 export const transactionRoutes = Router();
 transactionRoutes.use(createExportRoutes());
@@ -42,7 +44,9 @@ transactionRoutes.get(
 
       const transaction = await transactionModel.findById(id);
       if (!transaction)
-        return res.status(404).json({ error: "Transaction not found" });
+        throw createError(ERROR_CODES.NOT_FOUND, "Transaction not found", {
+          error: "Transaction not found",
+        });
 
       const pdf = await generateTransactionPdfBuffer(transaction);
 
@@ -60,7 +64,13 @@ transactionRoutes.get(
       res.status(200).send(pdf);
     } catch (err) {
       console.error("Failed to generate receipt PDF:", err);
-      res.status(500).json({ error: "Failed to generate receipt PDF" });
+      throw createError(
+        ERROR_CODES.INTERNAL_ERROR,
+        "Failed to generate receipt PDF",
+        {
+          error: "Failed to generate receipt PDF",
+        },
+      );
     }
   },
 );
@@ -77,8 +87,9 @@ transactionRoutes.post(
       const { expiresIn = 60 * 60 } = req.body || {};
       const transaction = await transactionModel.findById(id);
       if (!transaction)
-        return res.status(404).json({ error: "Transaction not found" });
-
+        throw createError(ERROR_CODES.NOT_FOUND, "Transaction not found", {
+          error: "Transaction not found",
+        });
       const token = generateShareToken(id, Number(expiresIn));
       const host = req.get("host") || "";
       const protocol = req.protocol;
@@ -90,7 +101,13 @@ transactionRoutes.post(
       });
     } catch (err) {
       console.error("Failed to create shareable receipt URL:", err);
-      res.status(500).json({ error: "Failed to create shareable receipt URL" });
+      throw createError(
+        ERROR_CODES.INTERNAL_ERROR,
+        "Failed to create shareable receipt URL",
+        {
+          error: "Failed to create shareable receipt URL",
+        },
+      );
     }
   },
 );
@@ -106,7 +123,9 @@ transactionRoutes.get(
       const payload = verifyShareToken(token);
       const transaction = await transactionModel.findById(payload.id);
       if (!transaction)
-        return res.status(404).json({ error: "Transaction not found" });
+        throw createError(ERROR_CODES.NOT_FOUND, "Transaction not found", {
+          error: "Transaction not found",
+        });
 
       const pdf = await generateTransactionPdfBuffer(transaction);
       const filename = `receipt-${transaction.referenceNumber}.pdf`;
@@ -118,7 +137,13 @@ transactionRoutes.get(
       res.status(200).send(pdf);
     } catch (err) {
       console.error("Invalid or expired share token:", err);
-      return res.status(401).json({ error: "Invalid or expired share token" });
+      throw createError(
+        ERROR_CODES.TOKEN_EXPIRED,
+        "Invalid or expired share token",
+        {
+          error: "Invalid or expired share token",
+        },
+      );
     }
   },
 );
