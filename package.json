@@ -61,7 +61,11 @@
     "test:load:spike-5k": "k6 run --vus-max 6000 -e SCENARIO=spike_5k tests/load/api.js"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}": "prettier --write"
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "jest --bail --findRelatedTests"
+    ],
+    "*.{js,cjs,mjs,json,md,yml,yaml}": "prettier --write"
   },
   "keywords": [],
   "author": "",
